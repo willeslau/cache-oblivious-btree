@@ -17,3 +17,8 @@ https://erikdemaine.org/papers/CacheObliviousBTrees_SICOMP/paper.pdf
 The main idea of the implementation is to write sub-btrees in memory in consecutive blocks in the storage. This would reduce
 the number of reads between storage and memory. At the same time, with the help of `Packed-Memory Array`, one can improve
 the performance further.
+
+### References
+1. Postgres btree implementation: https://github.com/postgres/postgres/tree/master/src/backend/access/nbtree
+2. Packed Memory Array implementation: https://github.com/pabmont/pma
+3. Improvements on Packed Memory Array: https://www3.cs.stonybrook.edu/~bender/newpub/BenderHu07-TODS.pdf and https://ir.cwi.nl/pub/28649/28649.pdf
