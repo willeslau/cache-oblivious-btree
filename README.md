@@ -7,7 +7,7 @@ BBBBTree
 ### Give a one paragraph description of your miniproject goals and plans. 
 This project aims to study and implement a cache-oblivious btree. Throughout study and work experience, btree has played 
 a vital role in many applications, such as database indexing. The purpose of this project is to: 
-1. Study btree thoroughly
+1. Learn more about btrees by writing an implementation in C
 2. Study storage and memory efficiency, have a deeper understanding of memory hierarchy model
 
 ### Paper
