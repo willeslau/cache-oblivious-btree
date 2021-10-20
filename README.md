@@ -18,6 +18,15 @@ The main idea of the implementation is to write sub-btrees in memory in consecut
 the number of reads between storage and memory. At the same time, with the help of `Packed-Memory Array`, one can improve
 the performance further.
 
+### Document
+Submit on Luminus:
+* Summary of research paper.
+* What is the main related work?
+* What are the main technical ideas? (How do they solve the problem? What are the key algorithms? What are the key
+theorems? What are the key proof ideas?)
+* What are some interesting open problems/directions?
+One of the key problems is whether their implementation is of true practical value...
+
 ### References
 1. Postgres btree implementation: https://github.com/postgres/postgres/tree/master/src/backend/access/nbtree
 2. Packed Memory Array implementation: https://github.com/pabmont/pma
