@@ -34,6 +34,11 @@ void _insertLeaf(BtreeNode* node, int (*keyCompare) (const void*, const void*), 
     while (insertPnt < node->size && keyCompare(key, node->keys[insertPnt]) > 0)
         insertPnt++;
 
+    for (int i = node->size; i > insertPnt; i--) {
+        node->keys[i] = node->keys[i-1];
+        node->items[i] = node->items[i-1];
+    }
+
     node->keys[insertPnt] = key;
     node->items[insertPnt] = value;
     node->size++;
