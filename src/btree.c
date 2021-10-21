@@ -21,12 +21,8 @@ void _split(BtreeNode* node, const void* key, const void* value) {
 
 }
 
-int _nodeEmpty(BtreeNode* node) {
-    return node->size == 0;
-}
-
 void _insertLeaf(BtreeNode* node, int (*keyCompare) (const void*, const void*), void* key, void* value) {
-    ensure((node->is_leaf == true), "Not leaf node");
+    ensure(node->is_leaf, "Not leaf node");
 
     if (node->size > MAX_CHILDREN) return _split(node, key, value);
 
@@ -34,6 +30,7 @@ void _insertLeaf(BtreeNode* node, int (*keyCompare) (const void*, const void*), 
     while (insertPnt < node->size && keyCompare(key, node->keys[insertPnt]) > 0)
         insertPnt++;
 
+    // TODO: optimization needed. If key equals, the below is not needed
     for (int i = node->size; i > insertPnt; i--) {
         node->keys[i] = node->keys[i-1];
         node->items[i] = node->items[i-1];
@@ -42,6 +39,10 @@ void _insertLeaf(BtreeNode* node, int (*keyCompare) (const void*, const void*), 
     node->keys[insertPnt] = key;
     node->items[insertPnt] = value;
     node->size++;
+}
+
+void _insertNode(BtreeNode* node, int (*keyCompare) (const void*, const void*), void* key, void* value) {
+    ensure(!node->is_leaf, "Not leaf node");
 }
 
 /* Create an new leaf node
@@ -95,10 +96,10 @@ BtreeNode* _newNode() {
 
 void insert(Btree* btree, void* key, void* value) {
     // empty tree, create the leaf nodes
-    if (btree->root == NULL) {
-        btree->root = _leafNode();
-        _insertLeaf(btree->root, btree->keyCompare, key, value);
-    }
+    if (btree->root == NULL) btree->root = _leafNode();
+
+    if (btree->root->is_leaf) _insertLeaf(btree->root, btree->keyCompare, key, value);
+    else _insertNode(btree->root, btree->keyCompare, key, value);
 
     btree->size++;
 }
