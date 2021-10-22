@@ -6,8 +6,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define MAX_CHILDREN 32
-#define MIN_CHILDREN 16
+#define MAX_CHILDREN 2
+#define MIN_CHILDREN 0
 
 #define ensure(expr, msg) if (!expr) { perror(msg); exit(EXIT_FAILURE); }
 
@@ -15,11 +15,11 @@
  * The B+tree internal data node
  */
 typedef struct BtreeNode {
-    short size;
+    int size;
     void** keys;
     struct BtreeNode* parent;
     /* This should be an array of nodes */
-    struct BtreeNode* links;
+    struct BtreeNode** links;
     /* For leaf nodes */
     bool is_leaf;
     void** items;
