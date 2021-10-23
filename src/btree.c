@@ -14,6 +14,7 @@ Btree* btreeCreate(int (*keyCompare) (const void* key1, const void* key2)) {
     btree->size = 0;
     btree->keyCompare = keyCompare;
     btree->root = NULL;
+    return btree;
 }
 
 /* Create an new leaf node
@@ -69,39 +70,16 @@ int nodeFull(BtreeNode* node) {
     return node->size == MAX_CHILDREN;
 }
 
-/*
- * Copy the links and keys of src to dst from the specified start
- * to the end indexes, inclusive. We assume the caller ensures the
- * validity of the range, not exceeding the indexes.
- *
- * Note that the indexes are with respect to the keys.
- */
-void copyChildren(BtreeNode* src, BtreeNode* dst, int start, int end) {
-    ensure(src->size > end, "Invalid node size");
-    ensure(src->is_leaf == dst->is_leaf, "Node type not the same");
-
-    if (src->is_leaf) {
-        for (int i = start; i <= end; i++) {
-            dst->items[i] = src->items[i];
-            dst->keys[i] = src->keys[i];
-        }
-    } else {
-        for (int i = start; i <= end; i++) {
-            dst->links[i] = src->links[i];
-            dst->keys[i] = src->keys[i];
-        }
-        dst->links[end+1] = src->links[end+1];
-    }
-}
-
 /* Split the node `toSplit` into two nodes. The hiNode holds keys
  * above the median. After the split, toSplit holds the keys below
  * the median key.
- *
  * The parentNode is the parent of toSplit. The index i is where in
  * the parent the newly splitted nodes should be linked to.
- *
  * Leaf and link nodes should be handled differently.
+ * Steps are as follows:
+ *  1. Init node
+ *  2. Add the newly added key along with toSplit keys,
+ *     find the median of the combined keys.
  */
 void nodeSplit(Btree* btree, BtreeNode* parentNode, int i, BtreeNode* toSplit, void* key) {
     // init the hiNode
@@ -109,23 +87,37 @@ void nodeSplit(Btree* btree, BtreeNode* parentNode, int i, BtreeNode* toSplit, v
     if (toSplit->is_leaf) hiNode = leafNode();
     else hiNode = linkNode();
 
-    int insertPnt = 0;
-    while (insertPnt < toSplit->size && btree->keyCompare(key, toSplit->keys[insertPnt]) > 0)
-        insertPnt++;
-
-    if (btree->keyCompare(key, toSplit->keys[insertPnt]) == 0) {
-        // TODO: no need to insert anything, just split at MAX_CHILDREN / 2
-        return;
-    }
+    int splitPnt = 0;
+    while (splitPnt < toSplit->size && btree->keyCompare(key, toSplit->keys[splitPnt]) > 0)
+        splitPnt++;
 
     // now copy the links of `toSplit` to `hiNode`
-    int median = (MAX_CHILDREN + 1) / 2;
-    copyChildren(toSplit, hiNode, median, MAX_CHILDREN-1);
+    int median = MAX_CHILDREN / 2;
+    if (toSplit->is_leaf) {
+        int k = 0;
+        for (int j = median; j < MAX_CHILDREN; j++) {
+            hiNode->items[k] = toSplit->items[j];
+            hiNode->keys[k] = toSplit->keys[j];
+            k++;
+        }
+    } else {
+        int j;
+        int k = 0;
+        // links[median] belongs to `toSplit` node
+        hiNode->keys[median] = toSplit->keys[median];
+        for (j = median+1; j <= MAX_CHILDREN - 1; j++) {
+            hiNode->links[k] = toSplit->links[j];
+            hiNode->keys[k] = toSplit->keys[j];
+            k++;
+        }
+        hiNode->links[j+1] = toSplit->links[j+1];
+    }
     hiNode->size = MAX_CHILDREN - median;
     toSplit->size -= hiNode->size;
 
     // now copy the links to the parent
-    for (int j = parentNode->size-1; j > i; j--) {
+    for (int j = parentNode->size-1; j >= i; j--) {
+        // index will not overflow as parentNode is not full
         parentNode->keys[i+1] = parentNode->keys[i];
         parentNode->links[i+2] = parentNode->links[i+1];
     }
@@ -157,24 +149,23 @@ void insertLeaf(Btree* btree, BtreeNode* node, int insertPnt, void* key, void* v
 }
 
 void nodeInsertNonFull(Btree* btree, BtreeNode* node, void* key, void* value) {
+    // TODO: count down will be slightly faster
     int insertPnt = 0;
     while (insertPnt < node->size && btree->keyCompare(key, node->keys[insertPnt]) > 0)
         insertPnt++;
 
-    if (nodeFull(node)) {
-        if (node == btree->root) {
-            btree->root = linkNode();
-            node->parent = btree->root;
-        }
-        nodeSplit(node->parent, insertPnt, node);
-        btree->height++;
-    }
-
     if (node->is_leaf) {
         if (node->keys[insertPnt] == NULL || btree->keyCompare(key, node->keys[insertPnt]) != 0) insertLeaf(btree, node, insertPnt, key, value);
         else node->items[insertPnt] = value;
+    } else {
+        if (nodeFull(node->links[insertPnt])) {
+            nodeSplit(btree, node, insertPnt, node->links[insertPnt], key);
+            if (btree->keyCompare(node->keys[insertPnt], key) < 0) {
+                insertPnt++;
+            }
+        }
+        nodeInsertNonFull(btree, node->links[insertPnt], key, value);
     }
-    else nodeInsertNonFull(btree, node->links[insertPnt], key, value);
 }
 
 void insert(Btree* btree, void* key, void* value) {
@@ -188,7 +179,16 @@ void insert(Btree* btree, void* key, void* value) {
         nodeSplit(btree, btree->root, 0, node, key);
         btree->height++;
     }
-
-    // TODO: update, always insert first then split?
     nodeInsertNonFull(btree, btree->root, key, value);
+}
+
+void print(Btree* btree, void (*printKeyVal) (void*, void*)) {
+    BtreeNode* node = btree->root;
+    while (!node->is_leaf) node = node->links[0];
+    while (node != NULL) {
+        for (int i = 0; i < node->size; i++)
+            printKeyVal(node->keys[i], node->items[i]);
+        node = node->next;
+    }
+    printKeyVal(NULL, NULL);
 }
