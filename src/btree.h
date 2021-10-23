@@ -53,5 +53,5 @@ typedef struct Btree {
 Btree* btreeCreate(int (*keyCompare) (const void*, const void*));
 void insert(Btree* btree, void* key, void* value);
 //void* range(Btree* btree, void* lo, void* hi);
-void print(Btree* btree, void (*printKeyVal) (void*, void*));
+void printElements(Btree* btree, void (*printKeyVal) (void*, void*));
 int btreeFree(Btree* btree);

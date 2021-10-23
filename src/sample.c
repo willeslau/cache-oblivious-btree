@@ -176,7 +176,7 @@
 //    printf("\n");
 //}
 //
-//// Find the node and print it
+//// Find the node and printElements it
 //void findAndPrint(node *const root, int key, bool verbose) {
 //    node *leaf = NULL;
 //    record *r = find(root, key, verbose, NULL);
@@ -187,7 +187,7 @@
 //               r, key, r->value);
 //}
 //
-//// Find and print the range
+//// Find and printElements the range
 //void findAndPrintRange(node *const root, int key_start, int key_end,
 //                       bool verbose) {
 //    int i;

@@ -87,10 +87,6 @@ void nodeSplit(Btree* btree, BtreeNode* parentNode, int i, BtreeNode* toSplit, v
     if (toSplit->is_leaf) hiNode = leafNode();
     else hiNode = linkNode();
 
-    int splitPnt = 0;
-    while (splitPnt < toSplit->size && btree->keyCompare(key, toSplit->keys[splitPnt]) > 0)
-        splitPnt++;
-
     // now copy the links of `toSplit` to `hiNode`
     int median = MAX_CHILDREN / 2;
     if (toSplit->is_leaf) {
@@ -100,17 +96,22 @@ void nodeSplit(Btree* btree, BtreeNode* parentNode, int i, BtreeNode* toSplit, v
             hiNode->keys[k] = toSplit->keys[j];
             k++;
         }
+        hiNode->next = toSplit->next;
+        hiNode->prev = toSplit;
+        toSplit->next = hiNode;
     } else {
         int j;
-        int k = 0;
+        int k = 1;
         // links[median] belongs to `toSplit` node
-        hiNode->keys[median] = toSplit->keys[median];
+        hiNode->keys[0] = toSplit->keys[median];
         for (j = median+1; j <= MAX_CHILDREN - 1; j++) {
             hiNode->links[k] = toSplit->links[j];
             hiNode->keys[k] = toSplit->keys[j];
             k++;
         }
-        hiNode->links[j+1] = toSplit->links[j+1];
+        hiNode->links[k] = toSplit->links[j];
+        toSplit->next = NULL;
+        toSplit->prev = NULL;
     }
     hiNode->size = MAX_CHILDREN - median;
     toSplit->size -= hiNode->size;
@@ -130,10 +131,6 @@ void nodeSplit(Btree* btree, BtreeNode* parentNode, int i, BtreeNode* toSplit, v
 
     hiNode->parent = parentNode;
     toSplit->parent = parentNode;
-
-    hiNode->next = toSplit->next;
-    hiNode->prev = toSplit;
-    toSplit->next = hiNode;
 }
 
 /* Insert into a leaf node. Caller ensure the node is a leaf node. */
@@ -170,7 +167,10 @@ void nodeInsertNonFull(Btree* btree, BtreeNode* node, void* key, void* value) {
 
 void insert(Btree* btree, void* key, void* value) {
     // empty tree, create the leaf nodes
-    if (btree->root == NULL) btree->root = leafNode();
+    if (btree->root == NULL) {
+        btree->root = leafNode();
+        btree->height++;
+    }
 
     if (nodeFull(btree->root)) {
         BtreeNode* node = btree->root;
@@ -182,7 +182,7 @@ void insert(Btree* btree, void* key, void* value) {
     nodeInsertNonFull(btree, btree->root, key, value);
 }
 
-void print(Btree* btree, void (*printKeyVal) (void*, void*)) {
+void printElements(Btree* btree, void (*printKeyVal) (void*, void*)) {
     BtreeNode* node = btree->root;
     while (!node->is_leaf) node = node->links[0];
     while (node != NULL) {
