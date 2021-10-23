@@ -6,20 +6,26 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define MAX_CHILDREN 32
-#define MIN_CHILDREN 16
+#define MAX_CHILDREN 2
+#define MIN_CHILDREN 0
 
 #define ensure(expr, msg) if (!expr) { perror(msg); exit(EXIT_FAILURE); }
+
+typedef struct ScanResult {
+    void* keys;
+    void* vals;
+    unsigned int size;
+} ScanResult;
 
 /*
  * The B+tree internal data node
  */
 typedef struct BtreeNode {
-    short size;
+    int size;
     void** keys;
     struct BtreeNode* parent;
     /* This should be an array of nodes */
-    struct BtreeNode* links;
+    struct BtreeNode** links;
     /* For leaf nodes */
     bool is_leaf;
     void** items;
@@ -46,4 +52,6 @@ typedef struct Btree {
  */
 Btree* btreeCreate(int (*keyCompare) (const void*, const void*));
 void insert(Btree* btree, void* key, void* value);
+//void* range(Btree* btree, void* lo, void* hi);
+void print(Btree* btree, void (*printKeyVal) (void*, void*));
 int btreeFree(Btree* btree);
