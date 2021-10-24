@@ -192,3 +192,8 @@ void printElements(Btree* btree, void (*printKeyVal) (void*, void*)) {
     }
     printKeyVal(NULL, NULL);
 }
+
+void btreeMetadata(Btree* btree) {
+    printf("tree height: %d. ", btree->height);
+    printf("tree size: %d\n", btree->size);
+}

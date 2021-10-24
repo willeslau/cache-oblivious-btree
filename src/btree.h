@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define MAX_CHILDREN 2
+#define MAX_CHILDREN 32
 #define MIN_CHILDREN 0
 
 #define ensure(expr, msg) if (!expr) { perror(msg); exit(EXIT_FAILURE); }
@@ -54,4 +54,5 @@ Btree* btreeCreate(int (*keyCompare) (const void*, const void*));
 void insert(Btree* btree, void* key, void* value);
 //void* range(Btree* btree, void* lo, void* hi);
 void printElements(Btree* btree, void (*printKeyVal) (void*, void*));
+void btreeMetadata(Btree* btree);
 int btreeFree(Btree* btree);

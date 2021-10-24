@@ -72,7 +72,8 @@ void speed() {
     }
     clock_t elapsed_time = clock() - start_time;
     printf("Done %d inserts in %f seconds. ", size, (double)elapsed_time / CLOCKS_PER_SEC);
-    printf("Per loop time: %f ms\n", 1000 * (double)elapsed_time / size / CLOCKS_PER_SEC);
+    printf("Per loop time: %f ns\n", 1000000000 * (double)elapsed_time / size / CLOCKS_PER_SEC);
+    btreeMetadata(btree);
 }
 
 int main() {
