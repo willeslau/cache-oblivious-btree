@@ -5,8 +5,10 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include "hashmap.h"
+#include "serialization.h"
 
-#define MAX_CHILDREN 32
+#define MAX_CHILDREN 2
 #define MIN_CHILDREN 0
 
 #define ensure(expr, msg) if (!expr) { perror(msg); exit(EXIT_FAILURE); }
@@ -17,19 +19,21 @@ typedef struct ScanResult {
     unsigned int size;
 } ScanResult;
 
+typedef struct SerializationMeta {
+    unsigned int size;
+    const unsigned char* data;
+} SerializationMeta;
+
 /*
  * The B+tree internal data node
  */
 typedef struct BtreeNode {
-    int size;
+    unsigned int id;
+    unsigned int size;
     void** keys;
-    struct BtreeNode* parent;
-    /* This should be an array of nodes */
     struct BtreeNode** links;
-    /* For leaf nodes */
     bool is_leaf;
     void** items;
-    struct BtreeNode* prev;
     struct BtreeNode* next;
 } BtreeNode;
 
@@ -38,21 +42,26 @@ typedef struct BtreeNode {
  */
 typedef struct Btree {
     BtreeNode* root;
+    DataItem** hashArray;
+    unsigned int nextId;
     /* The current size of the Btree */
     unsigned int size;
     /* The current height of the Btree */
     unsigned int height;
     /* The internal function to compare different keys */
     int (*keyCompare) (const void*, const void*);
+    Serializer* keySerializer;
+    Serializer* valSerializer;
 } Btree;
 
 /*
  * Create a btree, returns the pointer.
  * We pass in the key comparison function for future key compares
  */
-Btree* btreeCreate(int (*keyCompare) (const void*, const void*));
+Btree* btreeCreate(Serializer*, Serializer*, int (*keyCompare) (const void*, const void*));
 void insert(Btree* btree, void* key, void* value);
 //void* range(Btree* btree, void* lo, void* hi);
 void printElements(Btree* btree, void (*printKeyVal) (void*, void*));
 void btreeMetadata(Btree* btree);
 int btreeFree(Btree* btree);
+
