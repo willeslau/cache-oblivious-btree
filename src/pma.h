@@ -18,31 +18,35 @@
 // We can refer to https://github.com/lodborg/cache-oblivious-btree/blob/master/src/main/java/com/lodborg/btree/Segment.java
 
 typedef struct Segment {
-    /* Pointer to the array of items */
-    unsigned char* data;
-    /* The size of each item, for malloc */
-    long itemSize;
-    /* The size of the segment, refers to O(logN) in the paper.
+    /* The capacity of the segment, refers to O(logN) in the paper.
      * This number is not known if N is not known. Also make sure
      * this number is of 2^n for some bit-wise optimization.
      */
     unsigned int capacity;
     /* The current size of the Segment. */
     unsigned int size;
+    /* The size of each item, for malloc */
+    long itemSize;
+    /* Item compare function */
+    int (*keyCompare) (const void*, const void*);
+    /* Pointer to the array of items */
+    unsigned char* data;
     /* Bitmap indicate if items[i] is set. Int is enough due to MAX_SEGMENT_SIZE */
     bool bitmap[MAX_SEGMENT_SIZE];
 } Segment;
 
 /* Creates an empty segment */
-Segment* emptySegment(long itemSize, int capacity);
+Segment* emptySegment(long itemSize, int capacity, int (*compare) (const void*, const void*));
 
-/* Insert into the next free slot starting from the idx.
- * Performs memcpy. Returns status code.
+/* Insert into the next free slot, performs memcpy. Returns status code.
  */
-int segmentInsert(Segment* segment, void* key, void* val);
+int segmentInsert(Segment* segment, void* item);
 
-/* Find the value by the key */
-void* segmentFind(Segment* segment, void* key);
+/* Insert into the next free slot at or after idx, performs memcpy. Returns status code. */
+void segmentInsertAfter(Segment* segment, void* item, unsigned int idx);
+
+/* Find the index of the key, -1 if not found */
+int segmentFind(Segment* segment, void* keyOnly);
 
 /* Serialize the segment */
 char* serialize(Segment* segment);
