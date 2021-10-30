@@ -7,9 +7,12 @@
  * into a bigger array.
  */
 
+#include <stdbool.h>
+
 /* The status codes */
-# define PMA_OK 0;
-# define PMA_ERROR 1;
+#define PMA_OK 0
+#define PMA_ERROR 1
+#define MAX_SEGMENT_SIZE 32
 
 // We can refer to https://github.com/lodborg/cache-oblivious-btree/blob/master/src/main/java/com/lodborg/btree/Segment.java
 
@@ -22,9 +25,11 @@ typedef struct Segment {
      * This number is not known if N is not known. Also make sure
      * this number is of 2^n for some bit-wise optimization.
      */
-    int capacity;
+    unsigned int capacity;
     /* The current size of the Segment. */
-    int size;
+    unsigned int size;
+    /* Bitmap indicate if items[i] is set. Int is enough due to MAX_SEGMENT_SIZE */
+    bool bitmap[MAX_SEGMENT_SIZE];
 } Segment;
 
 /* Creates an empty segment */
@@ -47,7 +52,7 @@ int getNextFreeLeft(Segment* segment, unsigned int idx);
 /* Serialize the segment */
 char* serialize(Segment* segment);
 
-int remove(Segment* segment, unsigned int idx);
+int segmentRemove(Segment* segment, unsigned int idx);
 
 
 // ================= PMA related =================
@@ -63,8 +68,8 @@ typedef struct PackedMemoryArray {
 } PMA;
 
 /* Get the pointer to the data in the PMA at idx */
-void* get(PMA* pma, unsigned int idx);
+void* segmentGet(PMA* pma, unsigned int idx);
 /* Set the value of the data in the PMA at idx */
-void set(PMA* pma, unsigned int idx, void* item);
+void segmentSet(PMA* pma, unsigned int idx, void* item);
 /* Insert the value of the data in the PMA from idx */
-void insert(PMA* pma, unsigned int idx, void* item);
+void segmentInsert(PMA* pma, unsigned int idx, void* item);

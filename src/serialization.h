@@ -1,3 +1,7 @@
+#include <stdlib.h>
+
+#define ensure(expr, msg) if (!expr) { perror(msg); exit(EXIT_FAILURE); }
+
 /**
  * This is only a simple serialization implementation
  */

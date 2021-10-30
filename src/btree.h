@@ -3,15 +3,12 @@
  * and struct declarations needed for subsequent implementations.
  */
 
-#include <stdlib.h>
 #include <stdbool.h>
 #include "hashmap.h"
 #include "serialization.h"
 
 #define MAX_CHILDREN 32
 #define MIN_CHILDREN 0
-
-#define ensure(expr, msg) if (!expr) { perror(msg); exit(EXIT_FAILURE); }
 
 typedef struct ScanResult {
     void* keys;
