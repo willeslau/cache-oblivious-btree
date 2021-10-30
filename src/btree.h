@@ -8,7 +8,7 @@
 #include "hashmap.h"
 #include "serialization.h"
 
-#define MAX_CHILDREN 2
+#define MAX_CHILDREN 32
 #define MIN_CHILDREN 0
 
 #define ensure(expr, msg) if (!expr) { perror(msg); exit(EXIT_FAILURE); }

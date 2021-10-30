@@ -34,7 +34,7 @@ void sanityCheck() {
 
     Btree* btree = btreeCreate(serializer, serializer, intKeyCompare);
 
-    unsigned int size = 5;
+    unsigned int size = 200;
     void** keys = malloc(sizeof(void*) * size);
     for (int i = 0; i < size; i++) {
         Key* key = malloc(sizeof(Key));
