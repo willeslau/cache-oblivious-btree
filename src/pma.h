@@ -8,6 +8,7 @@
  */
 
 #include <stdbool.h>
+#include <sys/types.h>
 
 /* The status codes */
 #define PMA_OK 0
@@ -18,7 +19,7 @@
 
 typedef struct Segment {
     /* Pointer to the array of items */
-    void** items;
+    unsigned char* data;
     /* The size of each item, for malloc */
     long itemSize;
     /* The size of the segment, refers to O(logN) in the paper.
@@ -36,23 +37,23 @@ typedef struct Segment {
 Segment* emptySegment(long itemSize, int capacity);
 
 /* Insert into the next free slot starting from the idx.
- * Performs memcpy? Returns status code.
+ * Performs memcpy. Returns status code.
  */
-int insert(Segment* segment, unsigned int idx, const void* item);
+int segmentInsert(Segment* segment, void* key, void* val);
 
-/* Set the idx to the item, performs memcpy? Returns status code */
-int set(Segment* segment, unsigned int idx, const void* item);
-
-/* Get the next empty location to the right of idx. -1 if none. */
-int getNextFreeRight(Segment* segment, unsigned int idx);
-
-/* Get the next empty location to the left of idx. -1 if none. */
-int getNextFreeLeft(Segment* segment, unsigned int idx);
+/* Find the value by the key */
+void* segmentFind(Segment* segment, void* key);
 
 /* Serialize the segment */
 char* serialize(Segment* segment);
 
 int segmentRemove(Segment* segment, unsigned int idx);
+
+/* Get the next empty location to the right of idx. -1 if none. */
+static int getNextFreeRight(Segment* segment, unsigned int idx);
+
+/* Get the next empty location to the left of idx. -1 if none. */
+static int getNextFreeLeft(Segment* segment, unsigned int idx);
 
 
 // ================= PMA related =================
@@ -67,9 +68,11 @@ typedef struct PackedMemoryArray {
     int height;
 } PMA;
 
-/* Get the pointer to the data in the PMA at idx */
-void* segmentGet(PMA* pma, unsigned int idx);
-/* Set the value of the data in the PMA at idx */
-void segmentSet(PMA* pma, unsigned int idx, void* item);
-/* Insert the value of the data in the PMA from idx */
-void segmentInsert(PMA* pma, unsigned int idx, void* item);
+/* Create a PMA */
+PMA* pmaCreate(long itemSize, int capacity);
+
+/* Insert the value into the PMA */
+int pmaInsert(PMA* pma, void* key, void* val);
+
+/* Find the value in the PMA by the key */
+void* pmaFind(PMA* pma, void* key);
