@@ -3,7 +3,6 @@
  */
 
 #include <malloc.h>
-#include <stdlib.h>
 #include <string.h>
 #include "btree.h"
 
@@ -79,16 +78,6 @@ char* nodeFilename(BtreeNode* node) {
     numberArray[digits+3] = 'n';
 
     return numberArray;
-}
-
-void write(char filename[], char* data) {
-    FILE *file = fopen(filename, "w");
-
-    int results = fputs(data, file);
-    if (results == EOF) {
-        // Failed to write do error code here.
-    }
-    fclose(file);
 }
 
 void writeNode(Btree* btree, BtreeNode* node) {

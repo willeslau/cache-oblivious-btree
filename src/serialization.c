@@ -1,8 +1,5 @@
-//
-// Created by lxm on 27/10/21.
-//
-
 #include <stdbool.h>
+#include <stdio.h>
 
 unsigned int serializeUInt(char* dst, unsigned int src, unsigned int index) {
     for (int i = 0; i < 4; i++) {
@@ -33,4 +30,14 @@ unsigned int copy(char* dst, const char* src, unsigned int len, unsigned int ind
         index++;
     }
     return index;
+}
+
+void write(char filename[], char* data) {
+    FILE *file = fopen(filename, "w");
+
+    int results = fputs(data, file);
+    if (results == EOF) {
+        // Failed to write do error code here.
+    }
+    fclose(file);
 }
