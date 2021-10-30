@@ -8,3 +8,4 @@ https://erikdemaine.org/papers/CacheObliviousBTrees_SICOMP/paper.pdf
 4. Process reference: https://www.cs.nmsu.edu/~hcao/teaching/cs582/note/DB2_4_BplusTreeExample.pdf
 5. http://staff.ustc.edu.cn/~csli/graduate/algorithms/book6/chap19.htm
 6. https://www.geeksforgeeks.org/insertion-in-a-b-tree/
+7. Some simple LRU in C: https://github.com/willcannings/C-LRU-Cache

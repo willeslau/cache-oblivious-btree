@@ -12,42 +12,6 @@ void printIntKeyValue(void* key, void* val) {
     else printf("(%d, %d) -> ", *(int*)key, *(int*)val);
 }
 
-void sanityCheck() {
-    Btree* btree = btreeCreate(intKeyCompare);
-
-    int k1 = 2, v1 = 2;
-    insert(btree, &k1, &v1);
-    printElements(btree, printIntKeyValue);
-
-    int k2 = 2, v2 = 2;
-    insert(btree, &k2, &v2);
-    printElements(btree, printIntKeyValue);
-
-    int k3 = 4, v3 = 2;
-    insert(btree, &k3, &v3);
-    printElements(btree, printIntKeyValue);
-
-    int k4 = 1, v4 = 2;
-    insert(btree, &k4, &v4);
-
-    int k5 = 0, v5 = 2;
-    insert(btree, &k5, &v5);
-    printElements(btree, printIntKeyValue);
-    printf("tree height: %d\n", btree->height);
-
-    int k6 = 5, v6 = 2;
-    insert(btree, &k6, &v6);
-
-    int k7 = 6, v7 = 2;
-    insert(btree, &k7, &v7);
-
-    int k8 = 7, v8 = 2;
-    insert(btree, &k8, &v8);
-
-    printElements(btree, printIntKeyValue);
-    printf("tree height: %d\n", btree->height);
-}
-
 typedef struct Key {
     int key;
 } Key;
@@ -56,7 +20,39 @@ int keyCompare(const void* key1, const void* key2) {
     return ((Key*)key1)->key - ((Key*)key2)->key;
 }
 
+char* serializeKey(void* key) {
+    char* data = malloc(4);
+    Key* k = (Key*)key;
+    serializeUInt(data, k->key, 0);
+    return data;
+}
+
+void sanityCheck() {
+    Serializer *serializer = malloc(sizeof(*serializer));
+    serializer->itemSize = 4;
+    serializer->process = serializeKey;
+
+    Btree* btree = btreeCreate(serializer, serializer, intKeyCompare);
+
+    unsigned int size = 200;
+    void** keys = malloc(sizeof(void*) * size);
+    for (int i = 0; i < size; i++) {
+        Key* key = malloc(sizeof(Key));
+        key->key = i;
+        keys[i] = (void*) key;
+    }
+    for (int i = 0; i < size; i++) {
+        insert(btree, keys[i], keys[i]);
+    }
+    printf("tree height: %d\n", btree->height);
+}
+
 void speed() {
+
+    Serializer *serializer = malloc(sizeof(*serializer));
+    serializer->itemSize = 4;
+    serializer->process = serializeKey;
+
     unsigned int size = 10000;
     void** keys = malloc(sizeof(void*) * size);
     for (int i = 0; i < size; i++) {
@@ -65,7 +61,7 @@ void speed() {
         keys[i] = (void*) key;
     }
 
-    Btree* btree = btreeCreate(keyCompare);
+    Btree* btree = btreeCreate(serializer, serializer, keyCompare);
     clock_t start_time = clock();
     for (int i = 0; i < size; i++) {
         insert(btree, keys[i], keys[i]);
@@ -77,7 +73,7 @@ void speed() {
 }
 
 int main() {
-//    sanityCheck();
-    speed();
+    sanityCheck();
+//    speed();
     return 0;
 }

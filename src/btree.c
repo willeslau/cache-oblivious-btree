@@ -4,28 +4,136 @@
 
 #include <malloc.h>
 #include <stdlib.h>
+#include <string.h>
 #include "btree.h"
 
-Btree* btreeCreate(int (*keyCompare) (const void* key1, const void* key2)) {
+#define IN_MEMORY_NODE_COUNT 100
+#define HASHMAP_MUL 10
+
+char* serializeNode(BtreeNode* node, Serializer* keySerializer, Serializer* valSerializer) {
+    long keySize = keySerializer->itemSize;
+    long valSize = valSerializer->itemSize;
+
+    // size of id + size + is_leaf + next(id)
+    size_t totalSize = 13 + keySize + node->size * keySize;
+    if (node->is_leaf) {
+        totalSize += valSize + valSize * node->size;
+    } else {
+        // the links are stored as unsigned int
+        totalSize += (node->size + 1) * 4;
+    }
+    // id => size => is_leaf => next(id) => size_of_key => keys => size_of_item => items
+    //                                                          => links
+    char* data = malloc(totalSize+1);
+    unsigned int index = 0;
+
+    unsigned int nextId = node->next == NULL ? (unsigned int)0 : node->next->id;
+    index = serializeUInt(data, node->id, index);
+    index = serializeUInt(data, node->size, index);
+    index = serializeBool(data, node->is_leaf, index);
+    index = serializeUInt(data, nextId, index);
+    index = serializeLong(data, keySize, index);
+    // copy keys
+    for (unsigned int i = 0; i < node->size; i++) {
+        index = copy(data, keySerializer->process(node->keys[i]), keySize, index);
+    }
+    if (node->is_leaf) {
+        // copy items
+        index = serializeLong(data, valSize, index);
+        for (unsigned int i = 0; i < node->size; i++) {
+            index = copy(data, keySerializer->process(node->items[i]), valSize, index);
+        }
+    } else {
+        // copy links, we just copy the node id
+        for (unsigned int i = 0; i <= node->size; i++) {
+            BtreeNode* link = node->links[i];
+            // TODO: can use special \0 to represent NULL
+            if (link == NULL) index = serializeUInt(data, 0, index);
+            else index = serializeUInt(data, link->id, index);
+        }
+    }
+
+    data[totalSize] = '\0';
+
+    return data;
+}
+
+char* nodeFilename(BtreeNode* node) {
+    unsigned int digits = 0;
+    unsigned int size = node->id;
+    while (size > 0) {
+        digits++;
+        size /= 10;
+    }
+
+    size = node->size;
+    char* numberArray = malloc(sizeof(char) * (4 + digits));
+    for (int i = 0; i < digits; i++) {
+        numberArray[i] = (size % 10) + '0';
+        size /= 10;
+    }
+
+    numberArray[digits] = '.';
+    numberArray[digits+1] = 'b';
+    numberArray[digits+2] = 'i';
+    numberArray[digits+3] = 'n';
+
+    return numberArray;
+}
+
+void write(char filename[], char* data) {
+    FILE *file = fopen(filename, "w");
+
+    int results = fputs(data, file);
+    if (results == EOF) {
+        // Failed to write do error code here.
+    }
+    fclose(file);
+}
+
+void writeNode(Btree* btree, BtreeNode* node) {
+    char* data = serializeNode(node, btree->keySerializer, btree->valSerializer);
+    write(nodeFilename(node), data);
+}
+
+char* read(char filename[]) {
+    FILE *f = fopen(filename, "r");
+
+    fseek(f, 0, SEEK_END);
+    long fsize = ftell(f);
+    fseek(f, 0, SEEK_SET);  /* same as rewind(f); */
+
+    char *string = malloc(fsize + 1);
+    fread(string, 1, fsize, f);
+    fclose(f);
+
+    return string;
+}
+
+Btree* btreeCreate(Serializer* keySerializer, Serializer* valSerializer, int (*keyCompare) (const void*, const void*)) {
     Btree* btree = malloc(sizeof(*btree));
     if (btree == NULL) return NULL;
 
+    btree->hashArray = malloc(sizeof(DataItem) * HASHMAP_MUL * IN_MEMORY_NODE_COUNT);
+    btree->nextId = 1;
     btree->height = 0;
     btree->size = 0;
     btree->keyCompare = keyCompare;
     btree->root = NULL;
+    btree->keySerializer = keySerializer;
+    btree->valSerializer = valSerializer;
     return btree;
 }
 
 /* Create an new leaf node
  * TODO: we have invoked 3 malloc calls, can reduce to 1?
  */
-BtreeNode* leafNode() {
+BtreeNode* leafNode(unsigned int id) {
     BtreeNode* node = malloc(sizeof(*node));
     ensure((node != NULL), "Cannot init node pointer.");
 
+    node->id = id;
     node->size = 0;
-    node->parent = NULL;
     node->links = NULL;
 
     int capacity = MAX_CHILDREN;
@@ -37,7 +145,6 @@ BtreeNode* leafNode() {
     ensure((node->items != NULL), "Cannot init node items pointers array.");
 
     node->next = NULL;
-    node->prev = NULL;
 
     return node;
 }
@@ -45,12 +152,12 @@ BtreeNode* leafNode() {
 /* Create an new empty node
  * TODO: we have invoked 3 malloc calls, can reduce to 1?
  */
-BtreeNode* linkNode() {
+BtreeNode* linkNode(unsigned int id) {
     BtreeNode* node = malloc(sizeof(*node));
     ensure((node != NULL), "Cannot init node pointer.");
 
+    node->id = id;
     node->size = 0;
-    node->parent = NULL;
 
     node->keys = malloc(MAX_CHILDREN * sizeof(void*));
     ensure((node->keys != NULL), "Cannot init node keys pointers array.");
@@ -61,7 +168,6 @@ BtreeNode* linkNode() {
     node->is_leaf = false;
     node->items = NULL;
     node->next = NULL;
-    node->prev = NULL;
 
     return node;
 }
@@ -84,8 +190,9 @@ int nodeFull(BtreeNode* node) {
 void nodeSplit(Btree* btree, BtreeNode* parentNode, int i, BtreeNode* toSplit, void* key) {
     // init the hiNode
     BtreeNode* hiNode;
-    if (toSplit->is_leaf) hiNode = leafNode();
-    else hiNode = linkNode();
+    if (toSplit->is_leaf) hiNode = leafNode(btree->nextId);
+    else hiNode = linkNode(btree->nextId);
+    btree->nextId++;
 
     // now copy the links of `toSplit` to `hiNode`
     int median = MAX_CHILDREN / 2;
@@ -97,7 +204,6 @@ void nodeSplit(Btree* btree, BtreeNode* parentNode, int i, BtreeNode* toSplit, v
             k++;
         }
         hiNode->next = toSplit->next;
-        hiNode->prev = toSplit;
         toSplit->next = hiNode;
     } else {
         int j;
@@ -111,7 +217,6 @@ void nodeSplit(Btree* btree, BtreeNode* parentNode, int i, BtreeNode* toSplit, v
         }
         hiNode->links[k] = toSplit->links[j];
         toSplit->next = NULL;
-        toSplit->prev = NULL;
     }
     hiNode->size = MAX_CHILDREN - median;
     toSplit->size -= hiNode->size;
@@ -129,8 +234,10 @@ void nodeSplit(Btree* btree, BtreeNode* parentNode, int i, BtreeNode* toSplit, v
     parentNode->links[i] = toSplit;
     parentNode->size++;
 
-    hiNode->parent = parentNode;
-    toSplit->parent = parentNode;
+    // write to file
+    writeNode(btree, parentNode);
+    writeNode(btree, hiNode);
+    writeNode(btree, toSplit);
 }
 
 /* Insert into a leaf node. Caller ensure the node is a leaf node. */
@@ -168,14 +275,15 @@ void nodeInsertNonFull(Btree* btree, BtreeNode* node, void* key, void* value) {
 void insert(Btree* btree, void* key, void* value) {
     // empty tree, create the leaf nodes
     if (btree->root == NULL) {
-        btree->root = leafNode();
+        btree->root = leafNode(btree->nextId);
         btree->height++;
+        btree->nextId++;
     }
 
     if (nodeFull(btree->root)) {
         BtreeNode* node = btree->root;
-        btree->root = linkNode();
-        node->parent = btree->root;
+        btree->root = linkNode(btree->nextId);
+        btree->nextId++;
         nodeSplit(btree, btree->root, 0, node, key);
         btree->height++;
     }
