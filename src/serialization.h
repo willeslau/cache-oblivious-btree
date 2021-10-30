@@ -1,7 +1,6 @@
-//
-// Created by lxm on 27/10/21.
-//
-
+/**
+ * This is only a simple serialization implementation
+ */
 typedef struct Serializer {
     unsigned int itemSize;
     char* (*process) (void*);

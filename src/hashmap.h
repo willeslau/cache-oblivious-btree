@@ -1,7 +1,6 @@
-//
-// Created by lxm on 26/10/21.
-//
-
+/**
+ * This is only a simple hashmap implementation
+ */
 typedef struct DataItem {
     void* data;
     int key;
