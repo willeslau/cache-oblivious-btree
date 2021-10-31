@@ -185,7 +185,7 @@ static void computeCapacity (PMA* pma) {
 static void resize(PMA* pma) {
     pack (pma, 0, pma->capacity);
     computeCapacity(pma);
-//    pma->height = floor_lg(pma->numSegment) + 1;
+    pma->height = mostSigBit(pma->numSegment);
     pma->hiThreshold = (LEAF_HI_THRESHOLD - ROOT_HI_THRESHOLD) / pma->height;
     pma->loThreshold = (ROOT_LO_THRESHOLD - LEAF_LO_THRESHOLD) / pma->height;
     pma->data = realloc (pma->data, sizeof (pma->itemSize) * pma->capacity);
