@@ -5,7 +5,7 @@
 
 #include <stdbool.h>
 #include "hashmap.h"
-#include "serialization.h"
+#include "util.h"
 
 #define MAX_CHILDREN 32
 #define MIN_CHILDREN 0

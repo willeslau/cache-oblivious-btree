@@ -15,3 +15,9 @@ unsigned int serializeLong(char* dst, long src, unsigned int index);
 unsigned int serializeBool(char* dst, bool src, unsigned int index);
 unsigned int copy(char* dst, const char* src, unsigned int len, unsigned int index);
 void write(char filename[], char* data);
+
+// bit operations
+unsigned int mostSigBit(unsigned int num);
+unsigned int ceilDivision(unsigned int a, unsigned int b);
+unsigned int normalize(int num);
+unsigned int normalizeUint(unsigned int num);

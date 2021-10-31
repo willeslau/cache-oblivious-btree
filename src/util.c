@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stdio.h>
+#include "util.h"
 
 unsigned int serializeUInt(char* dst, unsigned int src, unsigned int index) {
     for (int i = 0; i < 4; i++) {
@@ -40,4 +41,29 @@ void write(char filename[], char* data) {
         // Failed to write do error code here.
     }
     fclose(file);
+}
+
+unsigned int mostSigBit(unsigned int num) {
+    ensure((num > 0), "invalid number");
+    return sizeof(num) - __builtin_clz(num);
+}
+
+unsigned int normalize(int num) {
+    unsigned int i = 1;
+    while (i < num) {
+        i  = i << 1;
+    }
+    return i;
+}
+
+unsigned int normalizeUint(unsigned int num) {
+    unsigned int i = 1;
+    while (i < num) {
+        i  = i << 1;
+    }
+    return i;
+}
+
+unsigned int ceilDivision(unsigned int a, unsigned int b) {
+    return (1 + ((a - 1) / b));
 }

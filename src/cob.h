@@ -1,7 +1,7 @@
 /*
  * The cache oblivious btree implementation
  */
-#include "serialization.h"
+#include "util.h"
 
 typedef struct CacheObliviousBTree {
 
