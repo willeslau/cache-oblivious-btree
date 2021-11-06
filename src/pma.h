@@ -5,6 +5,7 @@
 
 #include <stdbool.h>
 #include <sys/types.h>
+#pragma once
 
 /* The status codes */
 #define PMA_OK 0
@@ -43,11 +44,11 @@ typedef struct PackedMemoryArray {
 } PMA;
 
 /* Creates an empty pma */
-PMA* emptySegment(long itemSize, int capacity, int (*compare) (const void*, const void*));
+PMA* emptyPMA(long itemSize, int capacity, int (*compare) (const void*, const void*));
 
 /* Insert into the next free slot, performs memcpy. Returns status code.
  */
-int segmentInsert(PMA* pma, void* item);
+int pmaInsert(PMA* pma, void* item);
 
 /* Insert into the next free slot at or after idx, performs memcpy. Returns status code. */
 void segmentInsertAfter(PMA* pma, void* item, unsigned int idx);

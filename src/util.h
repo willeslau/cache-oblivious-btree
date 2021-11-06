@@ -1,4 +1,7 @@
 #include <stdlib.h>
+#include <stdio.h>
+#include <stdbool.h>
+#pragma once
 
 #define ensure(expr, msg) if (!expr) { perror(msg); exit(EXIT_FAILURE); }
 

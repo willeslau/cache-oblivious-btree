@@ -3,12 +3,15 @@
  * and struct declarations needed for subsequent implementations.
  */
 
+
 #include <stdbool.h>
 #include "hashmap.h"
 #include "util.h"
 
 #define MAX_CHILDREN 32
 #define MIN_CHILDREN 0
+
+#pragma once
 
 typedef struct ScanResult {
     void* keys;

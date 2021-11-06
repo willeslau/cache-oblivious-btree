@@ -7,11 +7,13 @@
 #include <stdbool.h>
 
 typedef struct CacheObliviousBTree {
-    btree* topLevel;
-    pma* middleLevel
-    pma* bottomLevel;
+    Btree* topLevel;
+    PMA* midLevel;
+    PMA* bottomLevel;
+    int size;
+    int (*keyCompare) (const void*, const void*);
 } COB;
 
-COB* cobtreeCreate(Serializer* keySerializer, Serializer* valueSerializer, int (*keyCompare) (const void*, const void*), void* items, int size);
-pma* getRepElements(void* items, int numGroups);
-void insert(COB* cob, void* key, void* value);
+COB* cobtreeCreate(Serializer* keySerializer, Serializer* valueSerializer, int (*keyCompare) (const void*, const void*));
+PMA* getRepElements(void* items, int numGroups);
+void cobInsert(COB* cob, void* key, void* value);
