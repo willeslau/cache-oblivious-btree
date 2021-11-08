@@ -2,10 +2,17 @@
  * The cache oblivious btree implementation
  */
 #include "util.h"
+#include "btree.h"
+#include "pma.h"
+#include <stdbool.h>
 
 typedef struct CacheObliviousBTree {
-
+    Btree* topLevel;
+    PMA* midLevel;
+    PMA* bottomLevel;
+    int size;
+    int (*keyCompare) (const void*, const void*);
 } COB;
 
-COB* btreeCreate(Serializer*, Serializer*, int (*keyCompare) (const void*, const void*));
-void insert(COB* cob, void* key, void* value);
+COB* cobtreeCreate(Serializer* keySerializer, Serializer* valueSerializer, int (*keyCompare) (const void*, const void*), int size);
+void cobInsert(COB* cob, void* key, void* value);
