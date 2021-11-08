@@ -3,4 +3,4 @@ project(cache_oblivious_btree C)
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(cache_oblivious_btree main.c src/btree.c src/btree.h src/hashmap.c src/hashmap.h src/util.c src/util.h src/pma.h src/pma.c src/cob.h tests/pma_tests.c)
+add_executable(cache_oblivious_btree tests/btree_tests.c src/btree.c src/btree.h src/hashmap.c src/hashmap.h src/util.c src/util.h src/pma.h src/pma.c src/cob.h tests/pma_tests.c)

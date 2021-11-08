@@ -3,31 +3,49 @@
 #include "pma.h"
 #include "util.h"
 
-PMA* emptyPMA(long itemSize, int capacity, int (*compare) (const void*, const void*)) {
-    PMA* pma = malloc(sizeof(*pma));
-    ensure((pma != NULL), "cannot init pma");
-
+PMA* initPMA(PMA* pma, long itemSize, int capacity, int segmentSize, int (*compare) (const void*, const void*)) {
     pma->itemSize = itemSize;
     pma->capacity = normalize(capacity);
+    pma->segmentSize = segmentSize;
+    pma->numSegment = pma->capacity / pma->segmentSize;
     pma->size = 0;
     pma->keyCompare = compare;
     pma->data = malloc(itemSize * pma->capacity);
+    pma->isOccupied = malloc(sizeof(bool) * pma->capacity);
+}
+
+PMA* emptyPMA(long itemSize, int capacity, int segmentSize, int (*compare) (const void*, const void*)) {
+    PMA* pma = malloc(sizeof(*pma));
+    ensure((pma != NULL), "cannot init pma");
+
+    initPMA(pma, itemSize, capacity, segmentSize, compare);
     ensure((pma->data != NULL), "cannot init pma");
 
     return pma;
 }
 
+/*
+ * Array:
+ * |    |  2  |  4  |  5  |  7  |
+ *
+ * key: 6
+ *
+ * Find nearest smaller
+ * idx: 3
+ */
 bool pmaFindInner(PMA* pma, void* keyOnly, unsigned int* idx) {
-    unsigned int lo = 0;
-    unsigned int hi = pma->capacity-1;
+    ensure((pma->size > 0), "invalid size");
+
+    int lo = 0;
+    int hi = pma->capacity-1;
 
     // perform modified binary search
-    unsigned int mid;
+    int mid;
     while (lo <= hi) {
-        mid = ((hi - lo) >> 2) + lo;
+        mid = ((hi - lo) >> 1) + lo;
 
         // scan left to see until an empty item
-        unsigned int i = mid;
+        int i = mid;
         while (i >= lo && !pma->isOccupied[i]) i--;
         // all the lower slots are empty
         if (i < lo) lo = mid + 1;
@@ -35,10 +53,10 @@ bool pmaFindInner(PMA* pma, void* keyOnly, unsigned int* idx) {
             // now perform the compares
             int compare = pma->keyCompare(pma->data + pma->itemSize * i, keyOnly);
             if (compare == 0) {
-                *idx = mid;
+                *idx = i;
                 return true;
             }
-            else if (compare < 0) { hi = mid - 1; }
+            else if (compare > 0) { hi = i - 1; }
             else { lo = mid + 1; }
         }
     }
@@ -90,41 +108,17 @@ static int findFirstVacantBefore(PMA* pma, unsigned int idx) {
 static void dataLeftShift(PMA* pma, unsigned int start, unsigned int end) {
     ensure((start > 0), "start index too small");
     for (unsigned int i = start-1; i < end; i++) {
-        memcpy(pma->data + pma->itemSize * i, pma->data + pma->itemSize * (i+1), pma->itemSize);
+        pmaShiftData(pma, (i+1), i);
+//        memcpy(pma->data + pma->itemSize * i, pma->data + pma->itemSize * (i+1), pma->itemSize);
     }
 }
 
 static void dataRightShift(PMA* pma, unsigned int start, unsigned int end) {
     ensure((end < pma->capacity-1), "end index too large");
     for (unsigned int i = end+1; i > start; i--) {
-        memcpy(pma->data + pma->itemSize * i, pma->data + pma->itemSize * (i-1), pma->itemSize);
+        pmaShiftData(pma, (i-1), i);
+//        memcpy(pma->data + pma->itemSize * i, pma->data + pma->itemSize * (i-1), pma->itemSize);
     }
-}
-
-void pmaInsertAfter(PMA* pma, void* item, unsigned int idx) {
-    ensure((pma->size < pma->capacity), "pma full");
-    int i = findFirstVacantAfter(pma, idx+1);
-    // no vacancy after idx, search from before
-    if (i == -1) {
-        i = findFirstVacantBefore(pma,idx-1);
-        ensure((i >= 0), "inconsistent state");
-        dataLeftShift(pma, (unsigned int)i+1, idx);
-        setAtIndex(pma, idx, item);
-        pma->isOccupied[idx] = true;
-    } else {
-        dataRightShift(pma, idx+1, (unsigned int)i-1);
-        setAtIndex(pma, idx+1, item);
-        pma->isOccupied[idx + 1] = true;
-    }
-    pma->size++;
-}
-
-int pmaInsert(PMA* pma, void* item) {
-    ensure((pma->size < pma->capacity), "pma full");
-    unsigned int idx;
-    if (pmaFindInner(pma, item, &idx)) setAtIndex(pma, idx, item);
-    else pmaInsertAfter(pma, item, idx);
-    return PMA_OK;
 }
 
 unsigned int pmaSize(PMA* pma) {
@@ -194,15 +188,23 @@ static void resize(PMA* pma) {
 }
 
 /* Re-balance the pma from the index, caller ensure the validity of the idx */
-static void rebalance(PMA* pma, unsigned int idx) {
-    unsigned int occupancy = pma->isOccupied[idx] ? 1 : 0;
-    unsigned int windowStart, windowEnd, windowSize, depth = 0;
-    unsigned int start = idx - 1, end = idx + 1;
+static void rebalance(PMA* pma, int idx) {
+    int occupancy = pma->isOccupied[idx] ? 1 : 0;
+    int windowStart, windowEnd, windowSize, depth = 0;
+    int start = idx - 1, end = idx + 1;
     double hiThreshold, loThreshold, density;
+
     while (1) {
-        windowSize = pma->segmentSize * (depth << 1);
+        windowSize = pma->segmentSize * (1 << depth);
         windowStart = idx / windowSize * windowSize;
-        windowEnd = windowStart + windowSize;
+        windowEnd = windowStart + windowSize - 1;
+
+        /*
+         * Array:
+         *  |  2  |  4  |  5  |  6  |  7  |
+         *     |                 |     |
+         * windowStart          idx windowEnd
+         */
         // scan to the left
         while (start >= windowStart) {
             if (pma->isOccupied[start]) occupancy++;
@@ -218,14 +220,63 @@ static void rebalance(PMA* pma, unsigned int idx) {
         loThreshold = LEAF_LO_THRESHOLD + (depth * pma->loThreshold);
         depth++;
 
-        if (depth >= pma->height) {
-            resize(pma);
-            break;
-        }
+        // array is not packed at all
+        if (density < loThreshold) break;
         if (density <= hiThreshold && density >= loThreshold) {
             pack(pma, windowStart, windowEnd);
             redistribute(pma, windowStart, windowEnd, occupancy);
             break;
         }
+        if (depth > pma->height) {
+            resize(pma);
+            break;
+        }
     }
+}
+
+void pmaInsertAfter(PMA* pma, void* item, unsigned int idx) {
+    ensure((pma->size < pma->capacity), "pma full");
+    /*
+     * Array:
+     * |    |  2  |  4  |  5  |  7  |
+     *
+     * key: 6
+     * idx: 3
+     */
+    int i = findFirstVacantAfter(pma, idx+1);
+    // no vacancy after idx, search from before
+    if (i == -1) {
+        i = findFirstVacantBefore(pma,idx-1);
+        ensure((i >= 0), "inconsistent state");
+        // |  2  |  4  |  5  |  6  |  7  |
+        dataLeftShift(pma, (unsigned int)i+1, idx);
+        setAtIndex(pma, idx, item);
+    } else {
+        dataRightShift(pma, idx+1, (unsigned int)i-1);
+        setAtIndex(pma, idx+1, item);
+    }
+    pma->size++;
+
+    rebalance(pma, idx);
+}
+
+/*
+ * Array:
+ * |    |  2  |  4  |  5  |  7  |
+ *
+ * item: 6
+ */
+int pmaInsert(PMA* pma, void* item) {
+    ensure((pma->size < pma->capacity), "pma full");
+    if (pma->size == 0) {
+        setAtIndex(pma, 0, item);
+        pma->size++;
+        pma->height++;
+        return PMA_OK;
+    }
+
+    unsigned int idx;
+    if (pmaFindInner(pma, item, &idx)) setAtIndex(pma, idx, item);
+    else pmaInsertAfter(pma, item, idx);
+    return PMA_OK;
 }

@@ -19,13 +19,13 @@
 static const unsigned int MAX_SPARSENESS = (unsigned int)(1 / LEAF_LO_THRESHOLD);
 
 typedef struct PackedMemoryArray {
-    unsigned int segmentSize;
-    unsigned int numSegment;
+    int segmentSize;
+    int numSegment;
     /* The capacity of the pma, refers to O(logN) in the paper.
      * This number is not known if N is not known. Also make sure
      * this number is of 2^n for some bit-wise optimization.
      */
-    unsigned int capacity;
+    int capacity;
     /* The current size of the pma. */
     unsigned int size;
     /* The current height of the tree. */
@@ -36,32 +36,18 @@ typedef struct PackedMemoryArray {
     int (*keyCompare) (const void*, const void*);
     /* Pointer to the array of items */
     unsigned char* data;
-    /* Bitmap indicate if items[i] is set. Int is enough due to MAX_SEGMENT_SIZE */
-    bool isOccupied[MAX_SEGMENT_SIZE];
+    /* Bitmap indicate if items[i] is set */
+    bool* isOccupied;
     double hiThreshold;
     double loThreshold;
 } PMA;
 
-/* Creates an empty pma */
-PMA* emptySegment(long itemSize, int capacity, int (*compare) (const void*, const void*));
-
-/* Insert into the next free slot, performs memcpy. Returns status code.
- */
-int segmentInsert(PMA* pma, void* item);
-
-/* Insert into the next free slot at or after idx, performs memcpy. Returns status code. */
-void segmentInsertAfter(PMA* pma, void* item, unsigned int idx);
-
-/* Find the index of the key, -1 if not found */
-int segmentFind(PMA* pma, void* keyOnly);
-
-/* Find the size of the pma */
-unsigned int segmentSize(PMA* pma);
-
-/* Serialize the pma */
-char* serialize(PMA* pma);
-
-int segmentRemove(PMA* pma, unsigned int idx);
+unsigned int pmaSize(PMA* pma);
+int pmaInsert(PMA* pma, void* item);
+int pmaFind(PMA* pma, void* keyOnly);
+void pmaInsertAfter(PMA* pma, void* item, unsigned int idx);
+bool pmaFindInner(PMA* pma, void* keyOnly, unsigned int* idx);
+PMA* emptyPMA(long itemSize, int capacity, int segmentSize, int (*compare) (const void*, const void*));
 
 /* Get the next empty location to the right of idx. -1 if none. */
 static int getNextFreeRight(PMA* pma, unsigned int idx);
