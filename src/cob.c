@@ -3,7 +3,7 @@
 #include <math.h>
 #include "cob.h"
 
-COB* cobtreeCreate(Serializer* keySerializer, Serializer* valueSerializer, int (*keyCompare) (const void*, const void*)) {
+COB* cobtreeCreate(Serializer* keySerializer, Serializer* valueSerializer, int (*keyCompare) (const void*, const void*), int size) {
     COB* cob = malloc(sizeof(*cob));
     if (cob == NULL) return NULL;
 
@@ -12,8 +12,8 @@ COB* cobtreeCreate(Serializer* keySerializer, Serializer* valueSerializer, int (
     if (btree == NULL) return NULL;
 
     cob->topLevel = btree;
-    cob->midLevel = emptyPMA(keySerializer->itemSize, 0, keyCompare); //pma?
-    cob->bottomLevel = emptyPMA(keySerializer->itemSize, 0, keyCompare); //pma
+    cob->midLevel = emptyPMA(keySerializer->itemSize, size, keyCompare); //pma?
+    cob->bottomLevel = emptyPMA(keySerializer->itemSize, size, keyCompare); //pma
     cob->size = 0;
 
     return cob;
