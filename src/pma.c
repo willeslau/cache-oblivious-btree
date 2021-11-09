@@ -164,25 +164,23 @@ static void redistribute(PMA* pma, unsigned int start, unsigned int end, unsigne
 }
 
 static void computeCapacity (PMA* pma) {
-    pma->segmentSize = mostSigBit(pma->capacity-1);
-    pma->numSegment = normalizeUint(ceilDivision(pma->capacity, pma->segmentSize));
-    /* Update the segment size accordingly. */
-    pma->segmentSize = ceilDivision(pma->size, pma->numSegment);
+    pma->segmentSize = (int) ceilLg((unsigned int)pma->size);
+    pma->numSegment = (int) hyperCeil(ceilDiv(pma->capacity, pma->segmentSize));
+    pma->segmentSize = (int) ceilDiv(pma->size, pma->numSegment);
     pma->capacity = pma->segmentSize * pma->numSegment;
     /* Scale up as much as possible. */
     pma->capacity *= MAX_SPARSENESS;
     pma->segmentSize *= MAX_SPARSENESS;
-//    assert (pma->m <= MAX_SIZE);
-//    assert (pma->m > pma->n);
 }
 
 static void resize(PMA* pma) {
-    pack (pma, 0, pma->capacity);
+    pack(pma, 0, pma->capacity);
     computeCapacity(pma);
-    pma->height = mostSigBit(pma->numSegment);
+    pma->height = floorLg(pma->numSegment) + 1;
     pma->hiThreshold = (LEAF_HI_THRESHOLD - ROOT_HI_THRESHOLD) / pma->height;
     pma->loThreshold = (ROOT_LO_THRESHOLD - LEAF_LO_THRESHOLD) / pma->height;
-    pma->data = realloc (pma->data, sizeof (pma->itemSize) * pma->capacity);
+    pma->data = realloc(pma->data, sizeof (pma->itemSize) * pma->capacity);
+    pma->isOccupied = realloc(pma->isOccupied, sizeof (bool) * pma->capacity);
     for (unsigned int i = pma->size; i < pma->capacity; i++) pma->isOccupied[i] = false;
     redistribute(pma, 0, pma->capacity, pma->size);
 }
@@ -220,15 +218,15 @@ static void rebalance(PMA* pma, int idx) {
         loThreshold = LEAF_LO_THRESHOLD + (depth * pma->loThreshold);
         depth++;
 
-        // array is not packed at all
-        if (density < loThreshold) break;
-        if (density <= hiThreshold && density >= loThreshold) {
-            pack(pma, windowStart, windowEnd);
-            redistribute(pma, windowStart, windowEnd, occupancy);
-            break;
-        }
         if (depth > pma->height) {
             resize(pma);
+            break;
+        }
+        // array is not packed at all
+        if (density <= loThreshold) break;
+        if (density < hiThreshold && density > loThreshold) {
+            pack(pma, windowStart, windowEnd);
+            redistribute(pma, windowStart, windowEnd, occupancy);
             break;
         }
     }
@@ -271,7 +269,6 @@ int pmaInsert(PMA* pma, void* item) {
     if (pma->size == 0) {
         setAtIndex(pma, 0, item);
         pma->size++;
-        pma->height++;
         return PMA_OK;
     }
 

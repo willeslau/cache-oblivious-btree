@@ -223,10 +223,10 @@ void nodeSplit(Btree* btree, BtreeNode* parentNode, int i, BtreeNode* toSplit, v
     parentNode->links[i] = toSplit;
     parentNode->size++;
 
-    // write to file
-    writeNode(btree, parentNode);
-    writeNode(btree, hiNode);
-    writeNode(btree, toSplit);
+//    // write to file
+//    writeNode(btree, parentNode);
+//    writeNode(btree, hiNode);
+//    writeNode(btree, toSplit);
 }
 
 /* Insert into a leaf node. Caller ensure the node is a leaf node. */

@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdint.h>
 #include "util.h"
 
 unsigned int serializeUInt(char* dst, unsigned int src, unsigned int index) {
@@ -43,11 +44,6 @@ void write(char filename[], char* data) {
     fclose(file);
 }
 
-unsigned int mostSigBit(unsigned int num) {
-    ensure((num > 0), "invalid number");
-    return sizeof(num) - __builtin_clz(num);
-}
-
 unsigned int normalize(int num) {
     unsigned int i = 1;
     while (i < num) {
@@ -56,14 +52,37 @@ unsigned int normalize(int num) {
     return i;
 }
 
-unsigned int normalizeUint(unsigned int num) {
-    unsigned int i = 1;
-    while (i < num) {
-        i  = i << 1;
-    }
-    return i;
+/*
+ * Returns the 1-based index of the last (i.e., most significant) bit set in x.
+ */
+unsigned int lastBitSet (unsigned int x) {
+    ensure((x > 0), "invalid input");
+    return (sizeof(unsigned int) * 8 - __builtin_clz(x));
 }
 
-unsigned int ceilDivision(unsigned int a, unsigned int b) {
-    return (1 + ((a - 1) / b));
+unsigned int floorLg (unsigned int x) {
+    return (lastBitSet (x) - 1);
+}
+
+unsigned int ceilLg (unsigned int x) {
+    return (lastBitSet (x - 1));
+}
+
+/* Returns the largest power of 2 not greater than x
+ * (i.e., $2^{\lfloor \lg x \rfloor}$).
+ */
+unsigned int hyperFloor (unsigned int x) {
+    return (1 << floorLg (x));
+}
+
+/* Returns the smallest power of 2 not less than x
+ * (i.e., $2^{\lceil \lg x \rceil}$).
+ */
+unsigned int hyperCeil (unsigned int x) {
+    return (1 << ceilLg (x));
+}
+
+unsigned int ceilDiv (unsigned int x, unsigned int y) {
+    ensure((x > 0), "invalid input x");
+    return (1 + ((x - 1) / y));
 }

@@ -17,7 +17,10 @@ unsigned int copy(char* dst, const char* src, unsigned int len, unsigned int ind
 void write(char filename[], char* data);
 
 // bit operations
-unsigned int mostSigBit(unsigned int num);
-unsigned int ceilDivision(unsigned int a, unsigned int b);
 unsigned int normalize(int num);
-unsigned int normalizeUint(unsigned int num);
+
+unsigned int floorLg (unsigned int x);
+unsigned int ceilLg (unsigned int x);
+unsigned int hyperFloor (unsigned int x);
+unsigned int hyperCeil (unsigned int x);
+unsigned int ceilDiv (unsigned int x, unsigned int y);
