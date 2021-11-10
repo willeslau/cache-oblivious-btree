@@ -14,6 +14,8 @@ add_executable(
         src/pma.h
         src/pma.c
         src/cob.h
+        src/cob.c
         tests/pma_tests.c
         tests/btree_tests.c
+        tests/cobtree_tests.c
 )
