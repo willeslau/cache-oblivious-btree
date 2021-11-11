@@ -1,5 +1,6 @@
-#include <malloc.h>
+#include <stdlib.h>
 #include <memory.h>
+#include <math.h>
 #include "pma.h"
 #include "util.h"
 
@@ -7,11 +8,14 @@ PMA* initPMA(PMA* pma, long itemSize, int capacity, int segmentSize, int (*compa
     pma->itemSize = itemSize;
     pma->capacity = normalize(capacity);
     pma->segmentSize = segmentSize;
-    pma->numSegment = pma->capacity / pma->segmentSize;
+    pma->numSegment = ceil((double)pma->capacity / pma->segmentSize);
     pma->size = 0;
+    pma->height = floorLg(pma->numSegment) + 1;
     pma->keyCompare = compare;
     pma->data = malloc(itemSize * pma->capacity);
     pma->isOccupied = malloc(sizeof(bool) * pma->capacity);
+
+    return pma;
 }
 
 PMA* emptyPMA(long itemSize, int capacity, int segmentSize, int (*compare) (const void*, const void*)) {
@@ -20,6 +24,10 @@ PMA* emptyPMA(long itemSize, int capacity, int segmentSize, int (*compare) (cons
 
     initPMA(pma, itemSize, capacity, segmentSize, compare);
     ensure((pma->data != NULL), "cannot init pma");
+
+    for (int i = 0; i < pma->capacity; i++) {
+        pma->isOccupied[i] = false;
+    }
 
     return pma;
 }
@@ -34,6 +42,7 @@ PMA* emptyPMA(long itemSize, int capacity, int segmentSize, int (*compare) (cons
  * idx: 3
  */
 bool pmaFindInner(PMA* pma, void* keyOnly, unsigned int* idx) {
+    //printf("in findinner\n");
     ensure((pma->size > 0), "invalid size");
 
     int lo = 0;
@@ -72,14 +81,16 @@ int pmaFind(PMA* pma, void* keyOnly) {
 }
 
 static void setAtIndex(PMA* pma, unsigned int idx, void* item) {
+    //printf("in set at index\n");
     ensure((idx < pma->capacity), "idx overflow");
     memcpy(pma->data + pma->itemSize * idx, item, pma->itemSize);
+   //printf("%d: %d\n", idx, pma->isOccupied[idx]);
     pma->isOccupied[idx] = true;
 }
 
 static void pmaShiftData(PMA* pma, unsigned int src, unsigned int dst) {
     memcpy(pma->data + pma->itemSize * dst, pma->data + pma->itemSize * src, pma->itemSize);
-    pma->isOccupied[dst] = true;
+    pma->isOccupied[dst] = pma->isOccupied[src];
     pma->isOccupied[src] = false;
 }
 
@@ -156,7 +167,7 @@ static void redistribute(PMA* pma, unsigned int start, unsigned int end, unsigne
     // with enough gap, let's reshuffle
     unsigned int head = start + size - 1;
     unsigned int tail = end;
-    while (head < tail) {
+    while (head < tail && tail >= start) {
         pmaShiftData(pma, head, tail);
         head--;
         tail -= gap;
@@ -170,7 +181,7 @@ static void computeCapacity (PMA* pma) {
     pma->capacity = pma->segmentSize * pma->numSegment;
     /* Scale up as much as possible. */
     pma->capacity *= MAX_SPARSENESS;
-    pma->segmentSize *= MAX_SPARSENESS;
+    pma->numSegment *= MAX_SPARSENESS;
 }
 
 static void resize(PMA* pma) {
@@ -195,7 +206,7 @@ static void rebalance(PMA* pma, int idx) {
     while (1) {
         windowSize = pma->segmentSize * (1 << depth);
         windowStart = idx / windowSize * windowSize;
-        windowEnd = windowStart + windowSize - 1;
+        windowEnd = windowStart + windowSize < pma->capacity? windowStart + windowSize - 1: pma->capacity-1;
 
         /*
          * Array:
