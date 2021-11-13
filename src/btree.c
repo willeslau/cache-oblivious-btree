@@ -239,15 +239,32 @@ void insertLeaf(Btree* btree, BtreeNode* node, int insertPnt, void* key, void* v
     node->items[insertPnt] = value;
     node->size++;
     btree->size++;
+
+//    writeNode(btree, node);
 }
 
 void nodeInsertNonFull(Btree* btree, BtreeNode* node, void* key, void* value) {
     // TODO: count down will be slightly faster
-    int insertPnt = 0;
-    while (insertPnt < node->size && btree->keyCompare(key, node->keys[insertPnt]) > 0)
-        insertPnt++;
+    int lo = 0;
+    int hi = node->size-1;
+    int mid;
+    while (lo <= hi) {
+        mid = (hi - lo) / 2 + lo;
+        int cmp = btree->keyCompare(key, node->keys[mid]);
+        if (cmp > 0) lo = mid + 1;
+        else hi = mid - 1;
+    }
+    int insertPnt = lo;
+
+//    int insertPnt = 0;
+//    while (insertPnt < node->size && btree->keyCompare(key, node->keys[insertPnt]) > 0)
+//        insertPnt++;
 
     if (node->is_leaf) {
+//        if (insertPnt == 128) {
+//            void* k = node->keys[insertPnt];
+//            bool a = node->keys[insertPnt] == NULL;
+//        }
         if (node->keys[insertPnt] == NULL || btree->keyCompare(key, node->keys[insertPnt]) != 0) insertLeaf(btree, node, insertPnt, key, value);
         else node->items[insertPnt] = value;
     } else {

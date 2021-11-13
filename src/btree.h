@@ -7,7 +7,7 @@
 #include "hashmap.h"
 #include "util.h"
 
-#define MAX_CHILDREN 32
+#define MAX_CHILDREN 256
 #define MIN_CHILDREN 0
 
 typedef struct ScanResult {

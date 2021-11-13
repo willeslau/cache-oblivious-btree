@@ -53,7 +53,7 @@ void speed() {
     serializer->itemSize = 4;
     serializer->process = serializeKey;
 
-    unsigned int size = 10000;
+    unsigned int size = 100000;
     void** keys = malloc(sizeof(void*) * size);
     for (int i = 0; i < size; i++) {
         Key* key = malloc(sizeof(Key));
