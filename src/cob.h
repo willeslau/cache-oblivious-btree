@@ -14,5 +14,5 @@ typedef struct CacheObliviousBTree {
     int (*keyCompare) (const void*, const void*);
 } COB;
 
-COB* cobtreeCreate(Serializer* keySerializer, Serializer* valueSerializer, int (*keyCompare) (const void*, const void*), int segmentSize);
+COB* cobtreeCreate(Serializer* keySerializer, Serializer* valueSerializer, int (*keyCompare) (const void*, const void*), int segmentSize, int size);
 void cobInsert(COB* cob, void* key, void* value);
