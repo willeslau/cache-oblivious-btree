@@ -39,5 +39,5 @@ void cobInsert(COB* cob, void* key, void* value) {
             }
         }
     }
-    ++cob->size;
+    //++cob->size;
 }
